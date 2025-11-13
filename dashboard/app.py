@@ -3,6 +3,20 @@ from shiny import App, render, ui, reactive
 from shared import RealTimeStreamer
 import pandas as pd
 
+# Compatibility shim: Some Shiny versions do not provide ui.page_opts
+# Provide a minimal no-op replacement that at least sets <title> if given.
+try:
+    _ = ui.page_opts  # type: ignore[attr-defined]
+except AttributeError:  # pragma: no cover
+    def _page_opts_compat(title=None, fillable=None, **kwargs):
+        elems = []
+        if title:
+            elems.append(ui.tags.title(title))
+        # fillable is ignored here; layout CSS already uses 100vh containers
+        return ui.TagList(*elems)
+
+    ui.page_opts = _page_opts_compat  # type: ignore[attr-defined]
+
 from modules.tab_target_operation_manager import tab_ui as operation_ui, tab_server as operation_server
 from modules.tab_target_qc_team import tab_ui as qc_ui, tab_server as qc_server
 from modules.tab_target_ai_engineer import tab_ui as ai_ui, tab_server as ai_server
@@ -519,13 +533,29 @@ def server(input, output, session):
     streamer = RealTimeStreamer()
     shared_df = reactive.Value(pd.DataFrame())
     streaming_active = reactive.Value(False)
+    last_index = reactive.Value(0)
     
     @reactive.effect
     def _update():
-        reactive.invalidate_later(0.5)
-        if streaming_active.get():
-            df = streamer.get_current_data()
-            shared_df.set(df)
+        # Throttle updates to reduce UI churn on hosted envs
+        reactive.invalidate_later(1.0)
+
+        # Only update when streaming and on tabs that need it
+        if not streaming_active.get():
+            return
+
+        active_tab = input.active_tab() or DEFAULT_TAB
+        if active_tab not in ("operation", "log"):
+            return
+
+        # Skip if no new data
+        idx = streamer.get_last_update_time()
+        if idx == last_index.get():
+            return
+        last_index.set(idx)
+
+        df = streamer.get_current_data()
+        shared_df.set(df)
     
     @reactive.effect
     @reactive.event(input.fab_toggle_btn)

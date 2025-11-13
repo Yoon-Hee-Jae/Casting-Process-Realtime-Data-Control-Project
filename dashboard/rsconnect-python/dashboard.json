@@ -1,11 +1,11 @@
 {
     "https://api.shinyapps.io": {
         "server_url": "https://api.shinyapps.io",
-        "filename": "C:\\Users\\USER\\Documents\\DS projects\\Casting-Process-Realtime-Data-Control-Project\\dashboard",
+        "filename": "D:\\DS\\Casting-Process-Realtime-Data-Control-Project\\dashboard",
         "app_url": "https://heejaedash.shinyapps.io/dashdash/",
         "app_id": "15830670",
         "app_guid": null,
-        "title": "dashdash",
+        "title": "dashboard",
         "app_mode": "python-shiny",
         "app_store_version": 1
     }

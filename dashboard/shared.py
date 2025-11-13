@@ -54,7 +54,8 @@ class RealTimeStreamer:
         with self._lock:
             if self.current_index == 0:
                 return pd.DataFrame()
-            return self.full_data.iloc[: self.current_index].copy()
+            # Return a view instead of copying to avoid heavy memory churn
+            return self.full_data.iloc[: self.current_index]
 
     def get_last_update_time(self):
         with self._lock:
